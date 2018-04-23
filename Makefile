@@ -76,6 +76,10 @@ tag-latest:
 push-latest:
 	docker push $(IMAGE):latest
 
+update-opa:
+	@sed '/opa/{N;s/version: .*/version: $(TAG)/;}' glide.yaml > glide.yaml.tmp && mv glide.yaml.tmp glide.yaml
+	@git diff --name-only HEAD  |  grep  glide.yaml; if [ $$? -eq 0 ] ; then glide up -v ; fi
+
 test: generate
 	$(DISABLE_CGO) $(GO) test $(PACKAGES)
 
