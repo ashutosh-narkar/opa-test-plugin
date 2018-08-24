@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Script to revendor OPA, Add and Commit changes if needed
 
-set +e
+set -e
 set -x
 
 usage() {
