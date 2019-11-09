@@ -52,6 +52,8 @@ type evalResult struct {
 	metrics    metrics.Metrics
 }
 
+var sum = 0
+
 // Validate receives a slice of bytes representing the plugin's
 // configuration and returns a configuration value that can be used to
 // instantiate the plugin.
@@ -288,6 +290,8 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx ctx.Context, req *ext_authz.CheckReq
 		}
 	}
 
+	sum += result.metrics.All()["timer_server_handler_ns"].(int)
+	fmt.Println(sum)
 	return resp, nil
 }
 
