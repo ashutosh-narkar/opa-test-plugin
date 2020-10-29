@@ -127,6 +127,7 @@ check-lint:
 
 .PHONY: release
 release:
+	@echo $(VERSION)
 	docker run $(DOCKER_FLAGS) \
 		-v $(PWD)/$(RELEASE_DIR):/$(RELEASE_DIR) \
 		-v $(PWD):/_src \
