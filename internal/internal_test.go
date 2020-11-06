@@ -556,7 +556,6 @@ func TestCheckContextTimeout(t *testing.T) {
 	if event.Error.Error() != expectedErrMsg {
 		t.Fatalf("Expected error message %v but got %v", expectedErrMsg, event.Error.Error())
 	}
-
 }
 
 func TestCheckIllegalDecisionWithLogger(t *testing.T) {

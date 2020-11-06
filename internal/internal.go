@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/open-policy-agent/opa/topdown"
 	"io"
 	"io/ioutil"
 	"net"
@@ -47,7 +48,6 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/server"
 	"github.com/open-policy-agent/opa/storage"
-	"github.com/open-policy-agent/opa/topdown"
 	iCache "github.com/open-policy-agent/opa/topdown/cache"
 	"github.com/open-policy-agent/opa/util"
 )
@@ -247,7 +247,9 @@ func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*
 	result := evalResult{}
 	result.metrics = metrics.New()
 	result.metrics.Timer(metrics.ServerHandler).Start()
+
 	result.decisionID, err = uuid4()
+
 	if err != nil {
 		logrus.WithField("err", err).Error("Unable to generate decision ID.")
 		return nil, func() *rpc_status.Status { return nil }, err
