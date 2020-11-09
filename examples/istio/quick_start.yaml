@@ -25,7 +25,7 @@ spec:
             '@type': type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
             transport_api_version: V3
             status_on_error:
-              code: ServiceUnavailable
+              code: BadRequest
             with_request_body:
               max_request_bytes: 8192
               allow_partial_message: true
@@ -38,6 +38,7 @@ spec:
               google_grpc:
                 target_uri: 127.0.0.1:9191
                 stat_prefix: "ext_authz"
+              timeout: 10000s
 ---
 ############################################################
 # Namespace for cluster-wide OPA-Istio components.

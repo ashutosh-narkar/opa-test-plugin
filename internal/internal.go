@@ -145,6 +145,10 @@ func New(m *plugins.Manager, cfg *Config) plugins.Plugin {
 		interQueryBuiltinCache: iCache.NewInterQueryCache(m.InterQueryBuiltinCacheConfig()),
 	}
 
+	// add a counter for load testing
+	met := metrics.New()
+	plugin.counter = met.Counter("server_requests_counter")
+
 	// Register Authorization Server
 	ext_authz_v3.RegisterAuthorizationServer(plugin.server, plugin)
 	ext_authz_v2.RegisterAuthorizationServer(plugin.server, &envoyExtAuthzV2Wrapper{v3: plugin})
@@ -180,6 +184,9 @@ type envoyExtAuthzGrpcServer struct {
 	preparedQuery          *rego.PreparedEvalQuery
 	preparedQueryDoOnce    *sync.Once
 	interQueryBuiltinCache iCache.InterQueryCache
+	counter                metrics.Counter
+	serverHandlerTotalTime int64
+	opaEvalTotalTime       int64
 }
 
 type envoyExtAuthzV2Wrapper struct {
@@ -247,7 +254,6 @@ func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*
 	result := evalResult{}
 	result.metrics = metrics.New()
 	result.metrics.Timer(metrics.ServerHandler).Start()
-
 	result.decisionID, err = uuid4()
 
 	if err != nil {
