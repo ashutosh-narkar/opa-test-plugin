@@ -82,6 +82,10 @@ jobs:
           curl -L https://git.io/getLatestIstio | ISTIO_VERSION=${ISTIO_VERSION} sh - && mv istio-${ISTIO_VERSION} /tmp && cd /tmp/istio-${ISTIO_VERSION} && for i in install/kubernetes/helm/istio-init/files/crd*yaml; do kubectl apply -f $i; done && kubectl apply -f install/kubernetes/istio-demo.yaml && cd -
           kubectl -n istio-system wait --for=condition=available --timeout=600s --all deployment
 
+          # Install bats
+          sudo apt-get update -y
+          sudo apt-get install -y bats
+
           # Run the test
           make update-istio-quickstart-version && make test-e2e
 
