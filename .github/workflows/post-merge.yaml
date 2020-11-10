@@ -70,7 +70,7 @@ jobs:
           curl -L https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VERSION}/kind-linux-amd64 --output kind && chmod +x kind && sudo mv kind /usr/local/bin/
 
           # Create kind cluster
-          if [-z $(kind get clusters) ]; then
+          if [ -z $(kind get clusters) ]; then
             kind create cluster
           fi
           export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
