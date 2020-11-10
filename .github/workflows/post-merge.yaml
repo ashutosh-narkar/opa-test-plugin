@@ -87,3 +87,4 @@ jobs:
 
           # Delete the cluster
           kind delete cluster
+
