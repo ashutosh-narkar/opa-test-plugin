@@ -16,7 +16,7 @@ DISABLE_CGO := CGO_ENABLED=0
 
 BIN := opa_envoy_$(GOOS)_$(GOARCH)
 
-REPOSITORY := openpolicyagent
+REPOSITORY := ashtalk
 IMAGE := $(REPOSITORY)/opa
 
 ifeq ($(shell tty > /dev/null && echo 1 || echo 0), 1)
@@ -131,6 +131,7 @@ check-lint:
 
 .PHONY: release
 release:
+	@echo $(VERSION)
 	docker run $(DOCKER_FLAGS) \
 		-v $(PWD)/$(RELEASE_DIR):/$(RELEASE_DIR) \
 		-v $(PWD):/_src \
