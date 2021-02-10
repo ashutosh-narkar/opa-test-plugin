@@ -487,7 +487,7 @@ allow = response {
 The following policy shows how to generate an object response with the headers set as an array of values.
 The example policy restricts access to the `/admin` path and the `POST` method.
 
-```ruby
+```rego
 package envoy.authz
 
 default allow = {
@@ -744,6 +744,111 @@ This section provides examples of interacting with the Envoy External Authorizat
     }
   }
   ```
+
+## Performance
+
+This section provides some performance benchmarks that give an idea of the overhead of using the OPA-Envoy plugin.
+
+### Test Setup
+
+The setup uses the same example Go application that's described in the [Quick Start](#quick-start) section above. Below
+are some more details about the setup:
+
+* Platform: Minikube
+* Kubernetes Version: 1.18.6
+* Envoy Version: 1.10.0
+* OPA-Envoy Version: 0.26.0-envoy
+
+### Benchmarks
+
+The benchmark results below provide the percentile distribution of the latency observed by sending 5000 requests/sec
+to the sample application. Each request makes a `GET` call to the `/people` endpoint exposed by the application.
+
+The following graph shows the latency distribution when the load test is performed with [Envoy External
+Authorization
+API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) disabled. This means
+OPA is not included in the request path. This scenario is depicted by the `red` curve in graph below.
+
+The graph also documents the latency distribution observed when requests are
+sent directly to the application ie. no Envoy and OPA in the request path. This scenario is depicted by the
+`blue` curve in graph below.
+
+![app_envoy](./docs/app_envoy_hist.png)
+
+In the following graph, we will see the latency observed with [Envoy External
+Authorization
+API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled. This means
+Envoy will make a call to OPA on every incoming request. We will explore the effect of loading two different policies into
+OPA.
+
+1. NOP policy
+
+```rego
+package envoy.authz
+
+default allow = true
+```
+
+2. RBAC policy
+
+```rego
+package envoy.authz
+
+import input.attributes.request.http as http_request
+
+default allow = false
+
+allow {
+    roles_for_user[r]
+    required_roles[r]
+}
+
+roles_for_user[r] {
+    r := user_roles[user_name][_]
+}
+
+required_roles[r] {
+    perm := role_perms[r][_]
+    perm.method = http_request.method
+    perm.path = http_request.path
+}
+
+user_name = parsed {
+    [_, encoded] := split(http_request.headers.authorization, " ")
+    [parsed, _] := split(base64url.decode(encoded), ":")
+}
+
+user_roles = {
+    "alice": ["guest"],
+    "bob": ["admin"]
+}
+
+role_perms = {
+    "guest": [
+        {"method": "GET",  "path": "/people"},
+    ],
+    "admin": [
+        {"method": "GET",  "path": "/people"},
+    ],
+}
+```
+
+The results of the `NOP` and `RBAC` policy are shown by the `red` and `blue` curve respectively in graph below.
+
+![app_envoy_opa](./docs/app_envoy_opa_hist.png)
+
+The below graph plots the latency distribution for the scenarios described above.
+
+![combined](./docs/combined.png)
+
+#### OPA Benchmarks
+
+The below table below captures the `Average GRPC Server Handler` and `Average OPA Evaluation` time with [Envoy External
+Authorization
+API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled and the
+`RBAC` policy described above in loaded into OPA.
+
+
 
 ## Dependencies
 
