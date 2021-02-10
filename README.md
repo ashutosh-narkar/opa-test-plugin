@@ -848,6 +848,15 @@ Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled and the
 `RBAC` policy described above in loaded into OPA.
 
+| Number of Requests per sec | Avg Server hander time (ns) | Avg OPA Eval time (ns) |
+|:----------:|:-------------:|:------:|
+| 10 |  621571 | 366547 |
+| 100 |    598893   |   359489 |
+| 1000 | 4642258 |    2162904 |
+| 2000 | 20564686 |    2399305 |
+| 3000 | 36521080 |    4175011 |
+| 4000 | 12619557 |    3190782 |
+| 5000 | 15086045 |    3208657 |
 
 
 ## Dependencies
