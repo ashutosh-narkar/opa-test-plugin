@@ -761,27 +761,31 @@ are some more details about the setup:
 
 ### Benchmarks
 
-The benchmark results below provide the percentile distribution of the latency observed by sending 5000 requests/sec
+The benchmark result below provides the percentile distribution of the latency observed by sending *100 requests/sec*
 to the sample application. Each request makes a `GET` call to the `/people` endpoint exposed by the application.
 
-The following graph shows the latency distribution when the load test is performed with [Envoy External
+The graph shows the latency distribution when the load test is performed under the following conditions:
+
+1. **App Only**
+
+In this case, the graph documents the latency distribution observed when requests are
+sent directly to the application ie. no Envoy and OPA in the request path. This scenario is depicted by the
+`blue` curve.
+
+2. **App and Envoy**
+
+In this case, the distribution is with [Envoy External
 Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) disabled. This means
-OPA is not included in the request path. This scenario is depicted by the `red` curve in graph below.
+OPA is not included in the request path but Envoy is. This scenario is depicted by the `red` curve.
 
-The graph also documents the latency distribution observed when requests are
-sent directly to the application ie. no Envoy and OPA in the request path. This scenario is depicted by the
-`blue` curve in graph below.
+3. **App, Envoy and OPA (NOP policy)**
 
-![app_envoy](./docs/app_envoy_hist.png)
-
-In the following graph, we will see the latency observed with [Envoy External
+In the case, we will see the latency observed with [Envoy External
 Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled. This means
-Envoy will make a call to OPA on every incoming request. We will explore the effect of loading two different policies into
-OPA.
-
-1. NOP policy
+Envoy will make a call to OPA on every incoming request. The graph explores the effect of loading a NOP into
+OPA. This scenario is depicted by the `green` curve.
 
 ```rego
 package envoy.authz
@@ -789,7 +793,12 @@ package envoy.authz
 default allow = true
 ```
 
-2. RBAC policy
+4. **App, Envoy and OPA (RBAC policy)**
+
+In the case, we will see the latency observed with [Envoy External
+Authorization
+API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled and
+explore the effect of loading the following RBAC policy into OPA. This scenario is depicted by the `yellow` curve.
 
 ```rego
 package envoy.authz
@@ -833,31 +842,43 @@ role_perms = {
 }
 ```
 
-The results of the `NOP` and `RBAC` policy are shown by the `red` and `blue` curve respectively in graph below.
+![hist_100](./docs/hist_100.png)
 
-![app_envoy_opa](./docs/app_envoy_opa_hist.png)
+The above four scenarios are replicated to measure the latency distribution now by sending *1000 requests/sec*
+to the sample application. The following graph captures this result.
 
-The below graph plots the latency distribution for the scenarios described above.
-
-![combined](./docs/combined.png)
+![hist_1000](./docs/hist_1000.png)
 
 #### OPA Benchmarks
 
-The below table below captures the `Average GRPC Server Handler` and `Average OPA Evaluation` time with [Envoy External
+The table below captures the `GRPC Server Handler` and `OPA Evaluation` time with [Envoy External
 Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled and the
-`RBAC` policy described above in loaded into OPA.
+`RBAC` policy described above loaded into OPA. All values are in nanoseconds.
 
-| Number of Requests per sec | Avg Server hander time (ns) | Avg OPA Eval time (ns) |
-|:----------:|:-------------:|:------:|
-| 10 |  621571 | 366547 |
-| 100 |    598893   |   359489 |
-| 1000 | 4642258 |    2162904 |
-| 2000 | 20564686 |    2399305 |
-| 3000 | 36521080 |    4175011 |
-| 4000 | 12619557 |    3190782 |
-| 5000 | 15086045 |    3208657 |
+#### OPA Evaluation
 
+| Number of Requests per sec | 75% | 90% | 95% | 99% | 99.9% | 99.99% | Mean | Median |
+|:--------------------------:|:---:|:---:|:---:|:---:|:-----:|:------:|:----:|:------:|
+| 10 | 467122.5 | 571028.1000000001 | 579272 | 579272 | 579272 | 579272 | 437282.2 | 437367 |
+| 100 | 374714 | 439620.5 | 502146.69999999966 | 736478.7799999997 | 737025 | 737025 | 326840.78 | 307902 |
+| 1000 | 251582.25| 386282.89999999997 | 526037.849999999 | 1.5134571300000004e+06 | 5.627604689000038e+06 | 5.629248e+06 | 269490.797 | 202471.5 |
+| 2000 | 223174.5 | 463464.60000000003 | 1.4615589999999993e+06 | 3.4564649000000022e+06 | 8.251585116000005e+06 | 8.289024e+06 | 345520.33171206224 | 168145 |
+| 3000 | 253609 | 660672.8 | 2.1717189499999997e+06 | 6.878808970000023e+06 | 1.4992017226400027e+08 | 1.52030931e+08 | 800997.785992218 | 163617.5 |
+| 4000 | 266848 | 625534.5000000005 | 1.9575684499999855e+06 | 1.897046686000001e+07 | 1.5220940807700014e+08 | 1.53406983e+08 | 1.0105490768482491e+06 | 162288.5 |
+| 5000 | 302344 | 1.1532631000000008e+06 | 2.2830179499999997e+06 | 6.149344860000005e+06 | 1.3199011520000002e+08 | 1.32097885e+08 | 984640.5642023346 | 170703.5 |
+
+#### GRPC Server Handler
+
+| Number of Requests per sec | 75% | 90% | 95% | 99% | 99.9% | 99.99% | Mean | Median |
+|:--------------------------:|:---:|:---:|:---:|:---:|:-----:|:------:|:----:|:------:|
+| 10 | 919938.25 | 1.1565892000000002e+06 | 1.181885e+06 | 1.181885e+06 | 1.181885e+06 | 1.181885e+06 | 766204.1 | 732136.5 |
+| 100 | 681010.75 | 777223.5 | 857337.0999999999 | 1.54397589e+06 | 1.544085e+06 | 1.544085e+06 | 580151.9 | 541035 |
+| 1000 | 430083.25 | 622528.2 | 1.0701779499999993e+06 | 3.0003663000000026e+06 | 6.792175860000025e+06 | 6.793221e+06 | 461363.562 | 346520 |
+| 2000 | 386011.25 | 992878.9 | 2.2925797499999986e+06 | 5.387087530000005e+06 | 8.935611370000001e+06 | 8.951691e+06 | 552703.4270428015 | 274954.5 |
+| 3000 | 458886.25 | 2.1694413e+06 | 4.60972435e+06 | 4.879369349e+07 | 2.9612397462200046e+08 | 2.99798509e+08 | 2.3640959630350196e+06 | 270948.5 |
+| 4000 | 523895.75 | 3.1685972e+06 | 8.197937899999997e+06 | 1.2732421728000012e+08 | 2.104271672640002e+08 | 2.12126793e+08 | 3.9907331332684825e+06 | 274938 |
+| 5000 | 556581 | 2.4421399e+06 | 3.9435085499999993e+06 | 9.178572150000013e+06 | 3.037966785880007e+08 | 3.09531296e+08 | 1.2836405680933853e+06 | 294794.5 |
 
 ## Dependencies
 

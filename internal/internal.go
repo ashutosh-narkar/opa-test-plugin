@@ -146,8 +146,8 @@ func New(m *plugins.Manager, cfg *Config) plugins.Plugin {
 	}
 
 	// add a counter for load testing
-	met := metrics.New()
-	plugin.counter = met.Counter("server_requests_counter")
+	plugin.loadMet = metrics.New()
+	//plugin.counter = met.Counter("server_requests_counter")
 
 	// Register Authorization Server
 	ext_authz_v3.RegisterAuthorizationServer(plugin.server, plugin)
@@ -184,9 +184,10 @@ type envoyExtAuthzGrpcServer struct {
 	preparedQuery          *rego.PreparedEvalQuery
 	preparedQueryDoOnce    *sync.Once
 	interQueryBuiltinCache iCache.InterQueryCache
-	counter                metrics.Counter
-	serverHandlerTotalTime int64
-	opaEvalTotalTime       int64
+	//counter                metrics.Counter
+	//serverHandlerTotalTime int64
+	//opaEvalTotalTime       int64
+	loadMet metrics.Metrics
 }
 
 type envoyExtAuthzV2Wrapper struct {
@@ -238,6 +239,10 @@ func (p *envoyExtAuthzGrpcServer) listen() {
 	p.manager.UpdatePluginStatus(PluginName, &plugins.Status{State: plugins.StateNotReady})
 }
 
+func (p *envoyExtAuthzGrpcServer) printMetrics() {
+	fmt.Printf("%v\n", p.loadMet)
+}
+
 // Check is envoy.service.auth.v3.Authorization/Check
 func (p *envoyExtAuthzGrpcServer) Check(ctx context.Context, req *ext_authz_v3.CheckRequest) (*ext_authz_v3.CheckResponse, error) {
 	resp, stop, err := p.check(ctx, req)
@@ -248,6 +253,17 @@ func (p *envoyExtAuthzGrpcServer) Check(ctx context.Context, req *ext_authz_v3.C
 }
 
 func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*ext_authz_v3.CheckResponse, func() *rpc_status.Status, error) {
+	//p.counter.Incr()
+	p.loadMet.Counter("server_requests").Incr()
+
+	go func() {
+		t := time.Tick(time.Second * 10)
+		for {
+			<-t
+			p.printMetrics()
+		}
+	}()
+
 	var err error
 	start := time.Now()
 
@@ -265,7 +281,22 @@ func (p *envoyExtAuthzGrpcServer) check(ctx context.Context, req interface{}) (*
 	var input map[string]interface{}
 
 	stop := func() *rpc_status.Status {
-		result.metrics.Timer(metrics.ServerHandler).Stop()
+		delta := result.metrics.Timer(metrics.ServerHandler).Stop()
+		p.loadMet.Histogram(metrics.ServerHandler).Update(delta)
+		p.loadMet.Histogram(metrics.RegoQueryEval).Update(result.metrics.Timer(metrics.RegoQueryEval).Int64())
+
+		// aggregate the server handler time
+		//atomic.AddInt64(&p.serverHandlerTotalTime, val)
+
+		// aggregate the OPA eval time
+		//atomic.AddInt64(&p.opaEvalTotalTime, result.metrics.Timer(metrics.RegoQueryEval).Int64())
+
+		//logrus.WithFields(logrus.Fields{
+		//	"number of requests":          p.counter.Value(),
+		//	"average server handler time": uint64(p.serverHandlerTotalTime) / p.counter.Value().(uint64),
+		//	"average opa eval time":       uint64(p.opaEvalTotalTime) / p.counter.Value().(uint64),
+		//}).Info("XXXX Server Stats.")
+
 		logErr := p.log(ctx, input, &result, err)
 		if logErr != nil {
 			return &rpc_status.Status{
