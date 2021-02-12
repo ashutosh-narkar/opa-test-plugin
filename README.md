@@ -842,21 +842,21 @@ role_perms = {
 }
 ```
 
-![hist_100](./docs/hist_100.png)
+![hist_100](./docs/hist_google_grpc_100.png)
 
 The above four scenarios are replicated to measure the latency distribution now by sending *1000 requests/sec*
 to the sample application. The following graph captures this result.
 
-![hist_1000](./docs/hist_1000.png)
+![hist_1000](./docs/hist_google_grpc_1000.png)
 
 #### OPA Benchmarks
 
-The table below captures the `GRPC Server Handler` and `OPA Evaluation` time with [Envoy External
+The table below captures the `gRPC Server Handler` and `OPA Evaluation` time with [Envoy External
 Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled and the
 `RBAC` policy described above loaded into OPA. All values are in nanoseconds.
 
-#### OPA Evaluation
+##### OPA Evaluation
 
 | Number of Requests per sec | 75% | 90% | 95% | 99% | 99.9% | 99.99% | Mean | Median |
 |:--------------------------:|:---:|:---:|:---:|:---:|:-----:|:------:|:----:|:------:|
@@ -868,7 +868,7 @@ API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ex
 | 4000 | 266848 | 625534.5000000005 | 1.9575684499999855e+06 | 1.897046686000001e+07 | 1.5220940807700014e+08 | 1.53406983e+08 | 1.0105490768482491e+06 | 162288.5 |
 | 5000 | 302344 | 1.1532631000000008e+06 | 2.2830179499999997e+06 | 6.149344860000005e+06 | 1.3199011520000002e+08 | 1.32097885e+08 | 984640.5642023346 | 170703.5 |
 
-#### GRPC Server Handler
+##### gRPC Server Handler
 
 | Number of Requests per sec | 75% | 90% | 95% | 99% | 99.9% | 99.99% | Mean | Median |
 |:--------------------------:|:---:|:---:|:---:|:---:|:-----:|:------:|:----:|:------:|
@@ -879,6 +879,53 @@ API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ex
 | 3000 | 458886.25 | 2.1694413e+06 | 4.60972435e+06 | 4.879369349e+07 | 2.9612397462200046e+08 | 2.99798509e+08 | 2.3640959630350196e+06 | 270948.5 |
 | 4000 | 523895.75 | 3.1685972e+06 | 8.197937899999997e+06 | 1.2732421728000012e+08 | 2.104271672640002e+08 | 2.12126793e+08 | 3.9907331332684825e+06 | 274938 |
 | 5000 | 556581 | 2.4421399e+06 | 3.9435085499999993e+06 | 9.178572150000013e+06 | 3.037966785880007e+08 | 3.09531296e+08 | 1.2836405680933853e+06 | 294794.5 |
+
+In the analysis so far, the gRPC client used in Envoy's External authorization filter configuration is the [Google C++ gRPC client](https://github.com/grpc/grpc).
+The following graph displays the latency distribution for the same four conditions described previously (ie. *App Only*,
+*App and Envoy*, *App, Envoy and OPA (NOP policy)* and *App, Envoy and OPA (RBAC policy)*) by sending *100 requests/sec*
+to the sample application but now using Envoy’s in-built gRPC client.
+
+![hist_100_envoy](./docs/hist_envoy_grpc_100.png)
+
+The below graph captures the latency distribution when *1000 requests/sec* are sent to the sample application and
+Envoy’s in-built gRPC client is used.
+
+![hist_1000_envoy](./docs/hist_envoy_grpc_1000.png)
+
+The following graphs show the latency distribution for the *App, Envoy and OPA (NOP policy)* and *App, Envoy and OPA (RBAC policy)*
+condition and plot the latencies seen by using the Google C++ gRPC client and Envoy’s in-built gRPC client in the
+External authorization filter configuration. The first graph is created when *100 requests/sec* are sent to the application
+while the second one for *1000 requests/sec*.
+
+![hist_100_google_vs_envoy](./docs/hist_google_vs_envoy_grpc_100.png)
+
+![hist_1000_google_vs_envoy](./docs/hist_google_vs_envoy_grpc_1000.png)
+
+### Debugging Performance Issues
+
+This section provides some pointers that could assist in debugging performance issues encountered while using the
+OPA-Envoy plugin.
+
+#### Benchmarking Queries
+
+The `opa bench` command evaluates a Rego query multiple times and reports metrics. You can also profile your polices using
+`opa eval` to understand expression evaluation time. More information on improving policy performance can be found [here](https://www.openpolicyagent.org/docs/latest/policy-performance/).
+
+#### Analyzing Decision Logs
+
+The OPA-Envoy plugin logs every decision that it makes. These logs contain lots of useful information including metrics like
+gRPC server handler time, Rego query evaluation time which can help in measuring the OPA-Envoy plugin's performance.
+To enable local console logging of decisions see [this](https://www.openpolicyagent.org/docs/latest/management/#local-decision-logs).
+
+#### Envoy External Authorization Filter Configuration
+
+Envoy's External authorization gRPC service configuration uses either Envoy’s in-built gRPC client, or the Google C++ gRPC client.
+From the results above, lower latency numbers are seen while using Envoy’s gRPC client versus Google's. Experimenting
+with the gRPC service configuration may help in improving performance.
+
+The filter configuration also has a `status_on_error` field that can be used to indicate a network error between the filter
+and the OPA-Envoy plugin. The default status on such an error is HTTP `403 Forbidden`. Changing the default value of this
+field will help uncover potential network issues as `403 Forbidden` is also generated when a request is denied.
 
 ## Dependencies
 
