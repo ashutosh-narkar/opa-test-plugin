@@ -784,7 +784,7 @@ OPA is not included in the request path but Envoy is. This scenario is depicted 
 In the case, we will see the latency observed with [Envoy External
 Authorization
 API](https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/security/ext_authz_filter.html) enabled. This means
-Envoy will make a call to OPA on every incoming request. The graph explores the effect of loading a NOP into
+Envoy will make a call to OPA on every incoming request. The graph explores the effect of loading the below NOP policy into
 OPA. This scenario is depicted by the `green` curve.
 
 ```rego
@@ -894,7 +894,7 @@ Envoy’s in-built gRPC client is used.
 
 The following graphs show the latency distribution for the *App, Envoy and OPA (NOP policy)* and *App, Envoy and OPA (RBAC policy)*
 condition and plot the latencies seen by using the Google C++ gRPC client and Envoy’s in-built gRPC client in the
-External authorization filter configuration. The first graph is created when *100 requests/sec* are sent to the application
+External authorization filter configuration. The first graph is when *100 requests/sec* are sent to the application
 while the second one for *1000 requests/sec*.
 
 ![hist_100_google_vs_envoy](./docs/hist_google_vs_envoy_grpc_100.png)
@@ -914,7 +914,7 @@ The `opa bench` command evaluates a Rego query multiple times and reports metric
 #### Analyzing Decision Logs
 
 The OPA-Envoy plugin logs every decision that it makes. These logs contain lots of useful information including metrics like
-gRPC server handler time, Rego query evaluation time which can help in measuring the OPA-Envoy plugin's performance.
+gRPC server handler time and Rego query evaluation time which can help in measuring the OPA-Envoy plugin's performance.
 To enable local console logging of decisions see [this](https://www.openpolicyagent.org/docs/latest/management/#local-decision-logs).
 
 #### Envoy External Authorization Filter Configuration
