@@ -1,5 +1,5 @@
 ####################################################
-# App Deployment with Envoy sidecar. See https://www.openpolicyagent.org/docs/edge/envoy-tutorial-standalone-envoy/
+# App Deployment with Envoy sidecar.
 ####################################################
 apiVersion: apps/v1
 kind: Deployment
@@ -40,9 +40,7 @@ spec:
           image: envoyproxy/envoy:v1.17.0
           env:
             - name: ENVOY_UID
-              value: "0"
-          securityContext:
-            runAsUser: 1111
+              value: "1111"
           volumeMounts:
             - readOnly: true
               mountPath: /config
@@ -90,8 +88,7 @@ data:
                     route:
                       cluster: service
               http_filters:
-              - name: envoy.router
-                typed_config: {}
+              - name: envoy.filters.http.router
       clusters:
       - name: service
         connect_timeout: 0.25s

@@ -1,5 +1,5 @@
 ####################################################
-# App Deployment with OPA-Envoy and Envoy sidecars. See https://www.openpolicyagent.org/docs/edge/envoy-tutorial-standalone-envoy/
+# App Deployment with OPA-Envoy and Envoy sidecars.
 ####################################################
 apiVersion: apps/v1
 kind: Deployment
@@ -41,9 +41,7 @@ spec:
           image: envoyproxy/envoy:v1.17.0
           env:
             - name: ENVOY_UID
-              value: "0"
-          securityContext:
-            runAsUser: 1111
+              value: "1111"
           volumeMounts:
             - readOnly: true
               mountPath: /config
@@ -53,7 +51,7 @@ spec:
             - "--config-path"
             - "/config/envoy.yaml"
         - name: opa-envoy
-          image: ashtalk/opa:0.26.0-envoy-load-test-4
+          image: openpolicyagent/opa:0.26.0-envoy    # ashtalk/opa:0.26.0-envoy-load-test-4
           securityContext:
             runAsUser: 1111
           volumeMounts:
@@ -161,8 +159,7 @@ data:
                       target_uri: 127.0.0.1:9191
                       stat_prefix: ext_authz
                     timeout: 60s
-              - name: envoy.router
-                typed_config: {}
+              - name: envoy.filters.http.router
       clusters:
       - name: service
         connect_timeout: 0.25s
